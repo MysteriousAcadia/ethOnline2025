@@ -42,29 +42,3 @@ export function useAaveUserSupplies(
     markets:
       poolAddress && userAddress
         ? [
-            {
-              address: evmAddress(poolAddress),
-              chainId: aaveChainId(chainIdNum),
-            },
-          ]
-        : [],
-    user: userAddress
-      ? evmAddress(userAddress)
-      : evmAddress("0x0000000000000000000000000000000000000000"),
-  });
-
-  // Transform to a symbol-keyed map
-  const supplies: Record<string, UserSupplyPosition> = {};
-
-  if (data && Array.isArray(data)) {
-    console.log("User supplies data:", data);
-    data.forEach((position: any) => {
-      // The correct path is currency.symbol based on the API response structure
-      const symbol = position.currency?.symbol;
-      if (symbol) {
-        supplies[symbol] = {
-          symbol,
-          suppliedAmount: position.balance?.amount?.value || "0",
-          suppliedUSD: position.balance?.usd || "0",
-          aTokenAddress: position.currency?.address || "",
-        };
