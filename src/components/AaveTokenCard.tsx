@@ -631,3 +631,109 @@ export function AaveTokenCard({
             )}
 
             {/* Cross-chain option - Only show for USDC */}
+            {showBridgeSupply && token === "USDC" && (
+              <BridgeAndExecuteButton
+                contractAddress={AAVE_CONFIG.POOL}
+                contractAbi={AAVE_POOL_ABI}
+                functionName="supply"
+                buildFunctionParams={(_, amt, _chainId, userAddress) => {
+                  const amountWei = parseUnits(amt, decimals);
+                  return {
+                    functionParams: [
+                      tokenAddress as `0x${string}`,
+                      amountWei,
+                      userAddress,
+                      0,
+                    ],
+                  };
+                }}
+                prefill={{
+                  toChainId: targetChainId as any, // Use the actual connected chain ID
+                  token: token as SUPPORTED_TOKENS,
+                  amount: amount,
+                }}
+              >
+                {({ onClick, isLoading, disabled }) => (
+                  <button
+                    onClick={onClick}
+                    disabled={isLoading || disabled || !amount}
+                    className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
+                      isLoading || disabled || !amount
+                        ? "bg-soft-gray/20 text-soft-gray cursor-not-allowed"
+                        : "bg-gradient-to-r from-neon-violet to-neon-violet/80 hover:from-neon-violet/90 hover:to-neon-violet/70 text-off-white"
+                    }`}
+                  >
+                    {isLoading ? (
+                      <>
+                        <Loader2 className="h-4 w-4 animate-spin" />
+                        Processing...
+                      </>
+                    ) : (
+                      <>Bridge & Supply {token}</>
+                    )}
+                  </button>
+                )}
+              </BridgeAndExecuteButton>
+            )}
+
+            {/* Direct supply (if on same chain) */}
+            {needsApproval ? (
+              <button
+                onClick={handleApprove}
+                disabled={isApprovePending || isApproveConfirming || !amount}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-neon-violet to-neon-violet/80 hover:from-neon-violet/90 hover:to-neon-violet/70 text-off-white font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+              >
+                {isApprovePending || isApproveConfirming ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {isApprovePending ? "Approving..." : "Confirming..."}
+                  </>
+                ) : (
+                  <>Approve {token}</>
+                )}
+              </button>
+            ) : (
+              <button
+                onClick={handleSupply}
+                disabled={isSupplyPending || isSupplyConfirming || !amount}
+                className="w-full py-3 rounded-xl bg-gradient-to-r from-aqua-blue to-aqua-blue/80 hover:from-aqua-blue/90 hover:to-aqua-blue/70 text-deep-space font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+              >
+                {isSupplyPending || isSupplyConfirming ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    {isSupplyPending ? "Supplying..." : "Confirming..."}
+                  </>
+                ) : (
+                  <>
+                    <ArrowUpRight className="h-4 w-4" />
+                    Supply {token} Directly
+                  </>
+                )}
+              </button>
+            )}
+          </>
+        ) : (
+          <button
+            onClick={handleWithdraw}
+            disabled={isWithdrawPending || isWithdrawConfirming || !amount}
+            className="w-full py-3 rounded-xl bg-gradient-to-r from-aqua-blue to-aqua-blue/80 hover:from-aqua-blue/90 hover:to-aqua-blue/70 text-deep-space font-semibold disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 transition-all"
+          >
+            {isWithdrawPending || isWithdrawConfirming ? (
+              <>
+                <Loader2 className="h-4 w-4 animate-spin" />
+                {isWithdrawPending ? "Withdrawing..." : "Confirming..."}
+              </>
+            ) : (
+              <>
+                <ArrowDownLeft className="h-4 w-4" />
+                Withdraw {token}
+              </>
+            )}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}
+
+
