@@ -1,0 +1,283 @@
+import { useAccount, useChainId } from "wagmi";
+import { TrendingUp, Info } from "lucide-react";
+import { useNetwork } from "../contexts/NetworkContext";
+import { useAaveMarketData } from "../hooks/useAaveMarketData";
+import { useAaveUserPosition } from "../hooks/useAaveUserPosition";
+import { useAaveUserSupplies } from "../hooks/useAaveUserSupplies";
+import { useMultiChainAaveData } from "../hooks/useMultiChainAaveData";
+import { AaveTokenCard } from "./AaveTokenCard";
+import { getAaveConfigByChainId } from "../config/aave";
+
+const CHAIN_INFO = {
+  1: {
+    // Ethereum
+    name: "Ethereum",
+    icon: "https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg",
+    color: "#627EEA",
+  },
+  137: {
+    // Polygon
+    name: "Polygon",
+    icon: "https://icons.llamao.fi/icons/chains/rsz_polygon.jpg",
+    color: "#8247E5",
+  },
+  8453: {
+    // Base
+    name: "Base",
+    icon: "https://icons.llamao.fi/icons/chains/rsz_base.jpg",
+    color: "#0052FF",
+  },
+  43114: {
+    // Avalanche
+    name: "Avalanche",
+    icon: "https://icons.llamao.fi/icons/chains/rsz_avalanche.jpg",
+    color: "#E84142",
+  },
+  11155111: {
+    // Sepolia
+    name: "Sepolia",
+    icon: "https://icons.llamao.fi/icons/chains/rsz_ethereum.jpg",
+    color: "#627EEA",
+  },
+} as const;
+
+interface AaveYieldProps {
+  className?: string;
+}
+
+export function AaveYield({ className = "" }: AaveYieldProps) {
+  const { networkMode } = useNetwork();
+  const { address } = useAccount();
+  const chainId = useChainId();
+
+  // Get Aave config based on connected chain
+  const AAVE_CONFIG = getAaveConfigByChainId(chainId);
+
+  // Fetch real-time market data from Aave using official @aave/react SDK
+  const {
+    reserves: reservesData,
+    loading: loadingMarketData,
+    error: marketDataError,
+  } = useAaveMarketData(AAVE_CONFIG.CHAIN_ID, address);
+
+  // Fetch multi-chain APR data for comparison
+  const { multiChainReserves, globalLoading: multiChainLoading } =
+    useMultiChainAaveData(address);
+
+  // Fetch user's Aave position (collateral, debt, health factor)
+  const { position: userPosition } = useAaveUserPosition(
+    AAVE_CONFIG.CHAIN_ID,
+    address
+  );
+
+  // Fetch user's supplied positions (accurate per-token supplied amounts)
+  const { supplies: userSupplies } = useAaveUserSupplies(
+    AAVE_CONFIG.CHAIN_ID,
+    address
+  );
+
+  // Debug log to verify supplied amounts
+  if (address && Object.keys(userSupplies).length > 0) {
+    console.log("User Supplies (from useUserSupplies hook):", userSupplies);
+  }
+
+  // Get chain info based on connected chain
+  const chainInfo =
+    CHAIN_INFO[chainId as keyof typeof CHAIN_INFO] || CHAIN_INFO[137];
+
+  // Get all available markets (all reserves that are active) sorted by APY (highest first)
+  const availableMarkets = Object.values(reservesData)
+    .filter((reserve) => reserve.isActive)
+    .sort((a, b) => {
+      const apyA = parseFloat(a.supplyAPY) || 0;
+      const apyB = parseFloat(b.supplyAPY) || 0;
+      return apyB - apyA; // Descending order (highest APY first)
+    });
+
+  // Get available liquidity for a token
+  const getAvailableLiquidity = (liquidity: string): string => {
+    const value = parseFloat(liquidity);
+    if (value > 1000000) return `${(value / 1000000).toFixed(2)}M`;
+    if (value > 1000) return `${(value / 1000).toFixed(2)}K`;
+    return value.toFixed(2);
+  };
+
+  return (
+    <div className={`space-y-6 ${className}`}>
+      {/* Header */}
+      <div className="p-6 rounded-2xl glass-card border-2 border-neon-violet/20">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-violet/30 to-neon-violet/10 flex items-center justify-center">
+              <TrendingUp className="h-6 w-6 text-neon-violet" />
+            </div>
+            <div>
+              <h3 className="text-xl font-bold text-off-white">
+                Aave V3 Yield
+              </h3>
+              <p className="text-sm text-soft-gray">
+                Supply tokens to earn interest or withdraw your funds
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 px-3 py-2 rounded-lg glass-card border border-neon-violet/20">
+            <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center bg-soft-gray/20">
+              <img
+                src={chainInfo.icon}
+                alt={chainInfo.name}
+                className="w-5 h-5 object-cover"
+                onError={(e) => {
+                  // Fallback to a colored circle if image fails to load
+                  e.currentTarget.style.display = 'none';
+                  e.currentTarget.parentElement!.style.backgroundColor = chainInfo.color + '40';
+                  e.currentTarget.parentElement!.innerHTML = `<div class="w-3 h-3 rounded-full" style="background-color: ${chainInfo.color}"></div>`;
+                }}
+              />
+            </div>
+            <span className="text-sm font-medium text-off-white">
+              {chainInfo.name}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      {/* Info Banner */}
+      {chainId === 11155111 ? (
+        <div className="p-4 rounded-xl bg-yellow-500/10 border border-yellow-500/30">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-yellow-500 mt-0.5 flex-shrink-0" />
+            <div className="text-sm">
+              <p className="text-yellow-500 font-semibold mb-1">
+                Testnet Limitation
+              </p>
+              <p className="text-yellow-400/80">
+                Aave V3 Sepolia pools have supply caps. If your transaction
+                fails with "SUPPLY_CAP_EXCEEDED", try a smaller amount or switch
+                between USDC/USDT.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <div className="p-4 rounded-xl bg-aqua-blue/10 border border-aqua-blue/30">
+          <div className="flex items-start gap-3">
+            <Info className="h-5 w-5 text-aqua-blue mt-0.5 flex-shrink-0" />
+            <div className="text-sm">
+              <p className="text-aqua-blue font-semibold mb-1">
+                {chainInfo.name} Network
+              </p>
+              <p className="text-aqua-blue/80">
+                You're connected to {chainInfo.name}. Real funds and gas fees
+                apply.
+                {chainId === 137 &&
+                  " You can bridge from any chain using the buttons below."}
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Position Summary (if user has supplied/borrowed) */}
+      {address && userPosition && userPosition.hasPositions && (
+        <div className="p-5 rounded-xl glass-card border-2 border-neon-violet/30 bg-gradient-to-br from-neon-violet/5 to-transparent">
+          <h4 className="text-sm font-semibold text-off-white mb-4 flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 text-neon-violet" />
+            Your Aave Position
+          </h4>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <div>
+              <div className="text-xs text-soft-gray mb-1">
+                Total Collateral
+              </div>
+              <div className="text-lg font-bold text-aqua-blue">
+                ${parseFloat(userPosition.totalCollateralUSD).toFixed(2)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-soft-gray mb-1">Total Debt</div>
+              <div className="text-lg font-bold text-off-white">
+                ${parseFloat(userPosition.totalDebtUSD).toFixed(2)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-soft-gray mb-1">
+                Available to Borrow
+              </div>
+              <div className="text-lg font-bold text-off-white">
+                ${parseFloat(userPosition.availableBorrowsUSD).toFixed(2)}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-soft-gray mb-1">Health Factor</div>
+              <div
+                className={`text-lg font-bold ${
+                  parseFloat(userPosition.healthFactor) > 2
+                    ? "text-green-400"
+                    : parseFloat(userPosition.healthFactor) > 1.5
+                    ? "text-yellow-400"
+                    : "text-red-400"
+                }`}
+              >
+                {parseFloat(userPosition.healthFactor) > 0
+                  ? parseFloat(userPosition.healthFactor).toFixed(2)
+                  : "∞"}
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-soft-gray mb-1">Current LTV</div>
+              <div className="text-lg font-bold text-off-white">
+                {(parseFloat(userPosition.ltv) * 100).toFixed(2)}%
+              </div>
+            </div>
+            <div>
+              <div className="text-xs text-soft-gray mb-1">
+                Liquidation Threshold
+              </div>
+              <div className="text-lg font-bold text-off-white">
+                {(
+                  parseFloat(userPosition.currentLiquidationThreshold) * 100
+                ).toFixed(2)}
+                %
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Loading and Error displays */}
+      {multiChainLoading && (
+        <div className="p-4 rounded-xl bg-aqua-blue/10 border border-aqua-blue/30">
+          <p className="text-aqua-blue text-sm flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 animate-pulse" />
+            Loading APR data from all chains...
+          </p>
+        </div>
+      )}
+
+      {marketDataError && (
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
+          <p className="text-red-500 text-sm">
+            Error loading market data. Please try again.
+          </p>
+        </div>
+      )}
+
+      {/* Token Cards Grid - Show all available markets */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+        {availableMarkets.map((reserve) => {
+          // Get multi-chain APY data for this token
+          const tokenMultiChainData = multiChainReserves[reserve.symbol];
+          const multiChainAPY = tokenMultiChainData
+            ? Object.entries(tokenMultiChainData).map(([chainId, data]) => ({
+                chainId: parseInt(chainId),
+                chainName: data.chainName,
+                chainIcon: data.chainIcon,
+                chainColor: data.chainColor,
+                supplyAPY: data.supplyAPY,
+                available: data.available,
+                loading: data.loading,
+                error: data.error,
+              }))
+            : [];
+
+          return (
