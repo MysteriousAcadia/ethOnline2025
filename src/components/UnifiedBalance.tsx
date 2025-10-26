@@ -278,3 +278,123 @@ export function UnifiedBalance() {
       {loading && (
         <div className="p-8 rounded-2xl glass-card border-2 border-aqua-blue/20 text-center">
           <div className="flex flex-col items-center gap-4">
+            <RefreshCw className="h-8 w-8 text-aqua-blue animate-spin" />
+            <p className="text-soft-gray">
+              Fetching balances across all chains...
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Balances */}
+      {!loading && balances.length > 0 && (
+        <div className="space-y-4">
+          {balances.map((token) => {
+            const isExpanded = expandedTokens.has(token.symbol);
+            const hasBalance = parseFloat(token.total) > 0;
+
+            return (
+              <div
+                key={token.symbol}
+                className="rounded-2xl glass-card border-2 border-aqua-blue/20 overflow-hidden"
+              >
+                {/* Token Summary */}
+                <button
+                  onClick={() => hasBalance && toggleToken(token.symbol)}
+                  className="w-full p-6 flex items-center justify-between hover:bg-white/5 transition-colors duration-200"
+                  disabled={!hasBalance}
+                >
+                  <div className="flex items-center gap-4">
+                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-aqua-blue/30 to-aqua-blue/10 flex items-center justify-center border-2 border-aqua-blue/30">
+                      <span className="text-sm font-bold text-aqua-blue">
+                        {token.symbol}
+                      </span>
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-lg font-bold text-off-white">
+                          {token.symbol}
+                        </h4>
+                        <span className="text-xs text-soft-gray">
+                          {token.name}
+                        </span>
+                      </div>
+                      {hasBalance && token.chains.length > 0 && (
+                        <p className="text-xs text-soft-gray">
+                          {token.chains.length} chain
+                          {token.chains.length > 1 ? "s" : ""}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    <div className="text-right">
+                      <p className="text-xl font-bold text-off-white">
+                        {formatBalance(token.total, token.decimals)}
+                      </p>
+                      <p className="text-xs text-soft-gray">{token.symbol}</p>
+                    </div>
+                    {hasBalance && (
+                      <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-aqua-blue/20 to-transparent flex items-center justify-center">
+                        {isExpanded ? (
+                          <ChevronUp className="h-4 w-4 text-aqua-blue" />
+                        ) : (
+                          <ChevronDown className="h-4 w-4 text-aqua-blue" />
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </button>
+
+                {/* Chain Breakdown */}
+                {isExpanded && hasBalance && (
+                  <div className="border-t border-white/10 bg-black/20">
+                    <div className="p-6 space-y-3">
+                      {token.chains.map((chain) => (
+                        <div
+                          key={chain.chainId}
+                          className="flex items-center justify-between p-3 rounded-xl bg-gradient-to-br from-white/5 to-transparent"
+                        >
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={chain.logo}
+                              alt={chain.chainName}
+                              className="w-6 h-6 rounded-full"
+                            />
+                            <div>
+                              <p className="text-sm font-medium text-off-white">
+                                {chain.chainName}
+                              </p>
+                              <p className="text-xs text-soft-gray">
+                                Chain {chain.chainId}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-bold text-off-white">
+                              {formatBalance(chain.balance, token.decimals)}
+                            </p>
+                            <p className="text-xs text-soft-gray">
+                              {token.symbol}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Empty State */}
+      {!loading && balances.length === 0 && !error && (
+        <div className="p-8 rounded-2xl glass-card border-2 border-soft-gray/20 text-center">
+          <p className="text-soft-gray">No balances found</p>
+        </div>
+      )}
+    </div>
+  );
+}
