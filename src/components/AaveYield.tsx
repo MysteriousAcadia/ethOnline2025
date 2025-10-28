@@ -1,10 +1,14 @@
-import { useAccount, useChainId } from "wagmi";
-import { TrendingUp, Info } from "lucide-react";
+import { useAccount, useChainId, useSwitchChain } from "wagmi";
+import { TrendingUp, Info, Zap, ArrowRight } from "lucide-react";
+import { useState } from "react";
 import { useNetwork } from "../contexts/NetworkContext";
 import { useAaveMarketData } from "../hooks/useAaveMarketData";
 import { useAaveUserPosition } from "../hooks/useAaveUserPosition";
 import { useAaveUserSupplies } from "../hooks/useAaveUserSupplies";
-import { useMultiChainAaveData } from "../hooks/useMultiChainAaveData.ts";
+import {
+  useMultiChainAaveData,
+  getBestAPY,
+} from "../hooks/useMultiChainAaveData.ts";
 import { AaveTokenCard } from "./AaveTokenCard";
 import { getAaveConfigByChainId } from "../config/aave";
 
@@ -45,10 +49,29 @@ interface AaveYieldProps {
   className?: string;
 }
 
+interface OptimizationResult {
+  token: string;
+  currentAPY: string;
+  bestAPY: string;
+  bestChainId: number;
+  bestChainName: string;
+  bestChainIcon: string;
+  potentialGain: string;
+}
+
 export function AaveYield({ className = "" }: AaveYieldProps) {
   const { networkMode } = useNetwork();
   const { address } = useAccount();
   const chainId = useChainId();
+  const { switchChain } = useSwitchChain();
+
+  // State for optimization modal
+  const [showOptimizationModal, setShowOptimizationModal] = useState(false);
+  const [optimizationResults, setOptimizationResults] = useState<
+    OptimizationResult[]
+  >([]);
+  const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isSwitchingChain, setIsSwitchingChain] = useState(false);
 
   // Get Aave config based on connected chain
   const AAVE_CONFIG = getAaveConfigByChainId(chainId);
@@ -102,6 +125,104 @@ export function AaveYield({ className = "" }: AaveYieldProps) {
     return value.toFixed(2);
   };
 
+  // Optimize yield - find best chains for all available tokens
+  const optimizeYield = async () => {
+    if (!multiChainReserves || multiChainLoading) return;
+
+    setIsOptimizing(true);
+    const results: OptimizationResult[] = [];
+
+    // Analyze each available token
+    availableMarkets.forEach((reserve) => {
+      const tokenMultiChainData = multiChainReserves[reserve.symbol];
+      if (!tokenMultiChainData) return;
+
+      const bestChain = getBestAPY(tokenMultiChainData);
+      if (!bestChain) return;
+
+      const currentAPY = parseFloat(reserve.supplyAPY) || 0;
+      const bestAPYValue = parseFloat(bestChain.apy) || 0;
+
+      // Only include if there's a meaningful improvement (>0.1% APY difference)
+      if (bestAPYValue > currentAPY + 0.1) {
+        results.push({
+          token: reserve.symbol,
+          currentAPY: reserve.supplyAPY,
+          bestAPY: bestChain.apy,
+          bestChainId: bestChain.chainId,
+          bestChainName: bestChain.chainName,
+          bestChainIcon: bestChain.chainIcon,
+          potentialGain: (bestAPYValue - currentAPY).toFixed(2),
+        });
+      }
+    });
+
+    // Sort by potential gain (highest first)
+    results.sort(
+      (a, b) => parseFloat(b.potentialGain) - parseFloat(a.potentialGain)
+    );
+
+    setOptimizationResults(results);
+    setIsOptimizing(false);
+    setShowOptimizationModal(true);
+  };
+
+  // Switch to the best chain for yields
+  const switchToBestChain = async (targetChainId: number) => {
+    if (!switchChain) return;
+
+    setIsSwitchingChain(true);
+    try {
+      await switchChain({ chainId: targetChainId });
+      setShowOptimizationModal(false);
+      setOptimizationResults([]);
+    } catch (error) {
+      console.error("Failed to switch chain:", error);
+    } finally {
+      setIsSwitchingChain(false);
+    }
+  };
+
+  // Get the most recommended chain (with highest potential gains)
+  const getRecommendedChain = () => {
+    if (optimizationResults.length === 0) return null;
+
+    // Group by chain and sum potential gains
+    const chainGains: Record<
+      number,
+      { gains: number; count: number; chainName: string; chainIcon: string }
+    > = {};
+
+    optimizationResults.forEach((result) => {
+      if (!chainGains[result.bestChainId]) {
+        chainGains[result.bestChainId] = {
+          gains: 0,
+          count: 0,
+          chainName: result.bestChainName,
+          chainIcon: result.bestChainIcon,
+        };
+      }
+      chainGains[result.bestChainId].gains += parseFloat(result.potentialGain);
+      chainGains[result.bestChainId].count += 1;
+    });
+
+    // Find chain with highest combined gains
+    let bestChain = null;
+    let maxGains = 0;
+
+    Object.entries(chainGains).forEach(([chainId, data]) => {
+      if (data.gains > maxGains) {
+        maxGains = data.gains;
+        bestChain = {
+          chainId: parseInt(chainId),
+          ...data,
+        };
+      }
+    });
+
+    return bestChain;
+  };
+
   return (
     <div className={`space-y-6 ${className}`}>
       {/* Header */}
@@ -120,15 +241,30 @@ export function AaveYield({ className = "" }: AaveYieldProps) {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 px-3 py-2 rounded-lg glass-card border border-neon-violet/20">
-            <img
-              src={chainInfo.icon}
-              alt={chainInfo.name}
-              className="w-5 h-5 object-contain"
-            />
-            <span className="text-sm font-medium text-off-white">
-              {chainInfo.name}
-            </span>
+          <div className="flex items-center gap-3">
+            {/* Optimize Yield Button */}
+            <button
+              onClick={optimizeYield}
+              disabled={isOptimizing || multiChainLoading || !address}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-gradient-to-r from-neon-violet to-aqua-blue hover:from-neon-violet/80 hover:to-aqua-blue/80 disabled:from-gray-600 disabled:to-gray-700 disabled:cursor-not-allowed transition-all duration-200 text-sm font-semibold text-white shadow-lg hover:shadow-neon-violet/25"
+            >
+              <Zap
+                className={`h-4 w-4 ${isOptimizing ? "animate-pulse" : ""}`}
+              />
+              {isOptimizing ? "Analyzing..." : "Optimize Yield"}
+            </button>
+
+            {/* Current Chain Info */}
+            <div className="flex items-center gap-2 px-3 py-2 rounded-lg glass-card border border-neon-violet/20">
+              <img
+                src={chainInfo.icon}
+                alt={chainInfo.name}
+                className="w-5 h-5 object-contain"
+              />
+              <span className="text-sm font-medium text-off-white">
+                {chainInfo.name}
+              </span>
+            </div>
           </div>
         </div>
       </div>
@@ -297,6 +433,7 @@ export function AaveYield({ className = "" }: AaveYieldProps) {
               loading={loadingMarketData}
               showBridgeSupply={reserve.symbol === "USDC"}
               multiChainAPY={multiChainAPY}
+              onOptimizeYield={switchToBestChain}
             />
           );
         })}
@@ -333,6 +470,140 @@ export function AaveYield({ className = "" }: AaveYieldProps) {
           </div>
         </div>
       </div>
+
+      {/* Optimization Modal */}
+      {showOptimizationModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-deep-space/95 backdrop-blur-lg border-2 border-neon-violet/30 rounded-2xl p-6 max-w-2xl w-full max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-neon-violet/30 to-aqua-blue/30 flex items-center justify-center">
+                  <Zap className="h-5 w-5 text-neon-violet" />
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold text-off-white">
+                    Yield Optimization Results
+                  </h3>
+                  <p className="text-sm text-soft-gray">
+                    Found better APY opportunities
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowOptimizationModal(false)}
+                className="text-soft-gray hover:text-off-white transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            {optimizationResults.length > 0 ? (
+              <>
+                {/* Recommended Chain */}
+                {(() => {
+                  const recommendedChain = getRecommendedChain();
+                  return recommendedChain ? (
+                    <div className="mb-6 p-4 rounded-xl bg-gradient-to-r from-green-500/20 to-green-400/20 border border-green-400/30">
+                      <div className="flex items-center justify-between mb-3">
+                        <div className="flex items-center gap-3">
+                          <img
+                            src={recommendedChain.chainIcon}
+                            alt={recommendedChain.chainName}
+                            className="w-8 h-8 object-contain"
+                          />
+                          <div>
+                            <h4 className="font-semibold text-green-400">
+                              Recommended: {recommendedChain.chainName}
+                            </h4>
+                            <p className="text-xs text-green-300">
+                              {recommendedChain.count} tokens with higher APY (+
+                              {recommendedChain.gains.toFixed(2)}% total gain)
+                            </p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() =>
+                            switchToBestChain(recommendedChain.chainId)
+                          }
+                          disabled={isSwitchingChain}
+                          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-green-500/20 border border-green-400/40 text-green-400 hover:bg-green-500/30 transition-all disabled:opacity-50"
+                        >
+                          {isSwitchingChain ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <ArrowRight className="h-4 w-4" />
+                          )}
+                          Switch Now
+                        </button>
+                      </div>
+                    </div>
+                  ) : null;
+                })()}
+
+                {/* Individual Token Results */}
+                <div className="space-y-3">
+                  <h4 className="text-sm font-semibold text-off-white mb-3">
+                    All Optimization Opportunities:
+                  </h4>
+                  {optimizationResults.map((result, index) => (
+                    <div
+                      key={`${result.token}-${index}`}
+                      className="flex items-center justify-between p-3 rounded-lg glass-card border border-soft-gray/20"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="text-lg font-bold text-off-white">
+                          {result.token}
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-soft-gray" />
+                        <div className="flex items-center gap-2">
+                          <img
+                            src={result.bestChainIcon}
+                            alt={result.bestChainName}
+                            className="w-5 h-5 object-contain"
+                          />
+                          <span className="text-sm text-soft-gray">
+                            {result.bestChainName}
+                          </span>
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-semibold text-green-400">
+                          {result.currentAPY}% → {result.bestAPY}%
+                        </div>
+                        <div className="text-xs text-green-300">
+                          +{result.potentialGain}% APY
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <div className="text-center py-8">
+                <div className="w-16 h-16 rounded-full bg-soft-gray/20 flex items-center justify-center mx-auto mb-4">
+                  <TrendingUp className="h-8 w-8 text-soft-gray" />
+                </div>
+                <h4 className="text-lg font-semibold text-off-white mb-2">
+                  Already Optimized!
+                </h4>
+                <p className="text-soft-gray">
+                  You're already on the best chain for current market
+                  conditions.
+                </p>
+              </div>
+            )}
+
+            <div className="mt-6 flex justify-end">
+              <button
+                onClick={() => setShowOptimizationModal(false)}
+                className="px-4 py-2 rounded-lg glass-card border border-soft-gray/20 text-soft-gray hover:text-off-white transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -12,8 +12,14 @@ import {
   ArrowDownLeft,
   Loader2,
   CircleDollarSign,
+  Zap,
 } from "lucide-react";
-import { getAaveConfig, AAVE_POOL_ABI, ERC20_ABI } from "../config/aave";
+import {
+  getAaveConfig,
+  getAaveConfigByChainId,
+  AAVE_POOL_ABI,
+  ERC20_ABI,
+} from "../config/aave";
 import type { SUPPORTED_TOKENS } from "@avail-project/nexus-widgets";
 
 interface ChainAPYData {
@@ -46,6 +52,7 @@ interface AaveTokenCardProps {
   loading?: boolean;
   showBridgeSupply?: boolean;
   multiChainAPY?: ChainAPYData[]; // New prop for multi-chain APY data
+  onOptimizeYield?: (targetChainId: number) => void; // Function to switch to optimal chain
 }
 
 export function AaveTokenCard({
@@ -66,6 +73,7 @@ export function AaveTokenCard({
   loading,
   showBridgeSupply = false,
   multiChainAPY = [],
+  onOptimizeYield,
 }: AaveTokenCardProps) {
   const [amount, setAmount] = useState("100");
   const [mode, setMode] = useState<"supply" | "withdraw">("supply");
@@ -172,6 +180,36 @@ export function AaveTokenCard({
   const expectedYield = (parseFloat(amount || "0") * parseFloat(apy)) / 100;
   const monthlyYield = expectedYield / 12;
 
+  // Find the best APY chain for this token
+  const getBestChainForToken = () => {
+    if (!multiChainAPY.length) return null;
+
+    let bestChain = null;
+    let bestAPY = 0;
+
+    multiChainAPY.forEach((chainData) => {
+      if (chainData.available && !chainData.loading && !chainData.error) {
+        const apy = parseFloat(chainData.supplyAPY) || 0;
+        if (apy > bestAPY) {
+          bestAPY = apy;
+          bestChain = chainData;
+        }
+      }
+    });
+
+    return bestChain;
+  };
+
+  const bestChain = getBestChainForToken();
+  const currentAPY = parseFloat(apy) || 0;
+  const bestAPY = bestChain ? parseFloat(bestChain.supplyAPY) || 0 : 0;
+  const potentialGain = bestAPY - currentAPY;
+  const showOptimizeButton =
+    bestChain &&
+    bestChain.chainId !== targetChainId &&
+    potentialGain > 0.1 && // Only show if meaningful improvement (>0.1% APY)
+    onOptimizeYield;
+
   return (
     <div className="p-6 rounded-2xl glass-card border-2 border-aqua-blue/20 hover:border-aqua-blue/40 transition-all">
       {/* Header */}
@@ -195,22 +233,40 @@ export function AaveTokenCard({
           </div>
         </div>
 
-        {/* Chain Badge */}
-        <div
-          className="px-3 py-1.5 rounded-lg border-2 flex items-center gap-2"
-          style={{
-            borderColor: chainColor + "40",
-            backgroundColor: chainColor + "10",
-          }}
-        >
-          <img
-            src={chainIcon}
-            alt={chainName}
-            className="w-4 h-4 object-contain"
-          />
-          <span className="text-xs font-semibold text-off-white">
-            {chainName}
-          </span>
+        <div className="flex items-center gap-2">
+          {/* Optimize Button - Show if better APY available on different chain */}
+          {showOptimizeButton && bestChain && (
+            <button
+              onClick={() => onOptimizeYield?.(bestChain.chainId)}
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-gradient-to-r from-green-500/20 to-green-400/20 border border-green-400/30 hover:from-green-500/30 hover:to-green-400/30 transition-all text-xs font-semibold text-green-400 hover:text-green-300"
+              title={`Switch to ${
+                bestChain.chainName
+              } for ${potentialGain.toFixed(2)}% higher APY`}
+            >
+              <Zap className="h-3 w-3" />
+              <span className="hidden sm:inline">
+                +{potentialGain.toFixed(1)}%
+              </span>
+            </button>
+          )}
+
+          {/* Chain Badge */}
+          <div
+            className="px-3 py-1.5 rounded-lg border-2 flex items-center gap-2"
+            style={{
+              borderColor: chainColor + "40",
+              backgroundColor: chainColor + "10",
+            }}
+          >
+            <img
+              src={chainIcon}
+              alt={chainName}
+              className="w-4 h-4 object-contain"
+            />
+            <span className="text-xs font-semibold text-off-white">
+              {chainName}
+            </span>
+          </div>
         </div>
       </div>
 
@@ -462,6 +518,74 @@ export function AaveTokenCard({
       <div className="space-y-2">
         {mode === "supply" ? (
           <>
+            {/* Optimize Yield Button - Bridge & Supply to optimal chain */}
+            {showBridgeSupply &&
+              token === "USDC" &&
+              showOptimizeButton &&
+              bestChain && (
+                <BridgeAndExecuteButton
+                  contractAddress={(() => {
+                    // Get Aave pool address for the best chain
+                    const bestChainConfig = getAaveConfigByChainId(
+                      bestChain.chainId
+                    );
+                    return bestChainConfig.POOL;
+                  })()}
+                  contractAbi={AAVE_POOL_ABI}
+                  functionName="supply"
+                  buildFunctionParams={(_, amt, _chainId, userAddress) => {
+                    const amountWei = parseUnits(amt, decimals);
+                    // Get the token address on the target chain
+                    const bestChainConfig = getAaveConfigByChainId(
+                      bestChain.chainId
+                    );
+                    const targetTokenAddress =
+                      bestChainConfig.ASSETS?.[
+                        token as keyof typeof bestChainConfig.ASSETS
+                      ]?.address || tokenAddress;
+
+                    return {
+                      functionParams: [
+                        targetTokenAddress as `0x${string}`,
+                        amountWei,
+                        userAddress,
+                        0,
+                      ],
+                    };
+                  }}
+                  prefill={{
+                    toChainId: bestChain.chainId as any,
+                    token: token as SUPPORTED_TOKENS,
+                    amount: amount,
+                  }}
+                >
+                  {({ onClick, isLoading, disabled }) => (
+                    <button
+                      onClick={onClick}
+                      disabled={isLoading || disabled || !amount}
+                      className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 transition-all ${
+                        isLoading || disabled || !amount
+                          ? "bg-soft-gray/20 text-soft-gray cursor-not-allowed"
+                          : "bg-gradient-to-r from-green-500/20 to-green-400/20 border-2 border-green-400/40 hover:from-green-500/30 hover:to-green-400/30 text-green-400 hover:text-green-300"
+                      }`}
+                    >
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                          Optimizing...
+                        </>
+                      ) : (
+                        <>
+                          <Zap className="h-4 w-4" />
+                          Optimize: Bridge to {bestChain.chainName} & Stake (+
+                          {potentialGain.toFixed(1)}% APY)
+                        </>
+                      )}
+                    </button>
+                  )}
+                </BridgeAndExecuteButton>
+              )}
+
             {/* Cross-chain option - Only show for USDC */}
             {showBridgeSupply && token === "USDC" && (
               <BridgeAndExecuteButton
