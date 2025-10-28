@@ -4,21 +4,37 @@ import { useNetwork } from "../contexts/NetworkContext";
 import { useAaveMarketData } from "../hooks/useAaveMarketData";
 import { useAaveUserPosition } from "../hooks/useAaveUserPosition";
 import { useAaveUserSupplies } from "../hooks/useAaveUserSupplies";
+import { useMultiChainAaveData } from "../hooks/useMultiChainAaveData.ts";
 import { AaveTokenCard } from "./AaveTokenCard";
 import { getAaveConfigByChainId } from "../config/aave";
 
 const CHAIN_INFO = {
-  137: { // Polygon
+  1: {
+    // Ethereum
+    name: "Ethereum",
+    icon: "https://cryptologos.cc/logos/ethereum-eth-logo.svg",
+    color: "#627EEA",
+  },
+  137: {
+    // Polygon
     name: "Polygon",
     icon: "https://statics.aave.com/polygon.svg",
     color: "#8247E5",
   },
-  8453: { // Base
+  8453: {
+    // Base
     name: "Base",
     icon: "https://cryptologos.cc/logos/coinbase-coin-logo.svg",
     color: "#0052FF",
   },
-  11155111: { // Sepolia
+  43114: {
+    // Avalanche
+    name: "Avalanche",
+    icon: "https://cryptologos.cc/logos/avalanche-avax-logo.svg",
+    color: "#E84142",
+  },
+  11155111: {
+    // Sepolia
     name: "Sepolia",
     icon: "https://cryptologos.cc/logos/ethereum-eth-logo.svg",
     color: "#627EEA",
@@ -33,7 +49,7 @@ export function AaveYield({ className = "" }: AaveYieldProps) {
   const { networkMode } = useNetwork();
   const { address } = useAccount();
   const chainId = useChainId();
-  
+
   // Get Aave config based on connected chain
   const AAVE_CONFIG = getAaveConfigByChainId(chainId);
 
@@ -43,6 +59,10 @@ export function AaveYield({ className = "" }: AaveYieldProps) {
     loading: loadingMarketData,
     error: marketDataError,
   } = useAaveMarketData(AAVE_CONFIG.CHAIN_ID, address);
+
+  // Fetch multi-chain APR data for comparison
+  const { multiChainReserves, globalLoading: multiChainLoading } =
+    useMultiChainAaveData(address);
 
   // Fetch user's Aave position (collateral, debt, health factor)
   const { position: userPosition } = useAaveUserPosition(
@@ -62,7 +82,8 @@ export function AaveYield({ className = "" }: AaveYieldProps) {
   }
 
   // Get chain info based on connected chain
-  const chainInfo = CHAIN_INFO[chainId as keyof typeof CHAIN_INFO] || CHAIN_INFO[137];
+  const chainInfo =
+    CHAIN_INFO[chainId as keyof typeof CHAIN_INFO] || CHAIN_INFO[137];
 
   // Get all available markets (all reserves that are active) sorted by APY (highest first)
   const availableMarkets = Object.values(reservesData)
@@ -100,8 +121,14 @@ export function AaveYield({ className = "" }: AaveYieldProps) {
             </div>
           </div>
           <div className="flex items-center gap-2 px-3 py-2 rounded-lg glass-card border border-neon-violet/20">
-            <img src={chainInfo.icon} alt={chainInfo.name} className="w-5 h-5 object-contain" />
-            <span className="text-sm font-medium text-off-white">{chainInfo.name}</span>
+            <img
+              src={chainInfo.icon}
+              alt={chainInfo.name}
+              className="w-5 h-5 object-contain"
+            />
+            <span className="text-sm font-medium text-off-white">
+              {chainInfo.name}
+            </span>
           </div>
         </div>
       </div>
@@ -132,8 +159,10 @@ export function AaveYield({ className = "" }: AaveYieldProps) {
                 {chainInfo.name} Network
               </p>
               <p className="text-aqua-blue/80">
-                You're connected to {chainInfo.name}. Real funds and gas fees apply.
-                {chainId === 137 && " You can bridge from any chain using the buttons below."}
+                You're connected to {chainInfo.name}. Real funds and gas fees
+                apply.
+                {chainId === 137 &&
+                  " You can bridge from any chain using the buttons below."}
               </p>
             </div>
           </div>
@@ -207,7 +236,16 @@ export function AaveYield({ className = "" }: AaveYieldProps) {
         </div>
       )}
 
-      {/* Error display */}
+      {/* Loading and Error displays */}
+      {multiChainLoading && (
+        <div className="p-4 rounded-xl bg-aqua-blue/10 border border-aqua-blue/30">
+          <p className="text-aqua-blue text-sm flex items-center gap-2">
+            <TrendingUp className="h-4 w-4 animate-pulse" />
+            Loading APR data from all chains...
+          </p>
+        </div>
+      )}
+
       {marketDataError && (
         <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/30">
           <p className="text-red-500 text-sm">
@@ -218,32 +256,50 @@ export function AaveYield({ className = "" }: AaveYieldProps) {
 
       {/* Token Cards Grid - Show all available markets */}
       <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-        {availableMarkets.map((reserve) => (
-          <AaveTokenCard
-            key={reserve.symbol}
-            token={reserve.symbol}
-            tokenName={reserve.name}
-            tokenLogo={reserve.tokenLogo}
-            networkMode={networkMode}
-            targetChainId={chainId} // Pass the actual connected chain ID
-            chainIcon={chainInfo.icon}
-            chainName={chainInfo.name}
-            chainColor={chainInfo.color}
-            apy={reserve.supplyAPY}
-            availableLiquidity={getAvailableLiquidity(
-              reserve.availableLiquidity
-            )}
-            userBalance={reserve.suppliable}
-            userATokenBalance={
-              userSupplies[reserve.symbol]?.suppliedAmount || "0"
-            }
-            aTokenAddress={reserve.aTokenAddress}
-            underlyingAsset={reserve.underlyingAsset}
-            decimals={reserve.decimals}
-            loading={loadingMarketData}
-            showBridgeSupply={reserve.symbol === "USDC"}
-          />
-        ))}
+        {availableMarkets.map((reserve) => {
+          // Get multi-chain APY data for this token
+          const tokenMultiChainData = multiChainReserves[reserve.symbol];
+          const multiChainAPY = tokenMultiChainData
+            ? Object.entries(tokenMultiChainData).map(([chainId, data]) => ({
+                chainId: parseInt(chainId),
+                chainName: data.chainName,
+                chainIcon: data.chainIcon,
+                chainColor: data.chainColor,
+                supplyAPY: data.supplyAPY,
+                available: data.available,
+                loading: data.loading,
+                error: data.error,
+              }))
+            : [];
+
+          return (
+            <AaveTokenCard
+              key={reserve.symbol}
+              token={reserve.symbol}
+              tokenName={reserve.name}
+              tokenLogo={reserve.tokenLogo}
+              networkMode={networkMode}
+              targetChainId={chainId} // Pass the actual connected chain ID
+              chainIcon={chainInfo.icon}
+              chainName={chainInfo.name}
+              chainColor={chainInfo.color}
+              apy={reserve.supplyAPY}
+              availableLiquidity={getAvailableLiquidity(
+                reserve.availableLiquidity
+              )}
+              userBalance={reserve.suppliable}
+              userATokenBalance={
+                userSupplies[reserve.symbol]?.suppliedAmount || "0"
+              }
+              aTokenAddress={reserve.aTokenAddress}
+              underlyingAsset={reserve.underlyingAsset}
+              decimals={reserve.decimals}
+              loading={loadingMarketData}
+              showBridgeSupply={reserve.symbol === "USDC"}
+              multiChainAPY={multiChainAPY}
+            />
+          );
+        })}
       </div>
 
       {/* Stats Summary */}

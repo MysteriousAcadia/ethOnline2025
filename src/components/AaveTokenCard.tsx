@@ -7,13 +7,25 @@ import {
   useWaitForTransactionReceipt,
   useReadContract,
 } from "wagmi";
-import { ArrowUpRight, ArrowDownLeft, Loader2, CircleDollarSign } from "lucide-react";
 import {
-  getAaveConfig,
-  AAVE_POOL_ABI,
-  ERC20_ABI,
-} from "../config/aave";
+  ArrowUpRight,
+  ArrowDownLeft,
+  Loader2,
+  CircleDollarSign,
+} from "lucide-react";
+import { getAaveConfig, AAVE_POOL_ABI, ERC20_ABI } from "../config/aave";
 import type { SUPPORTED_TOKENS } from "@avail-project/nexus-widgets";
+
+interface ChainAPYData {
+  chainId: number;
+  chainName: string;
+  chainIcon: string;
+  chainColor: string;
+  supplyAPY: string;
+  available: boolean;
+  loading: boolean;
+  error?: string;
+}
 
 interface AaveTokenCardProps {
   token: string;
@@ -33,6 +45,7 @@ interface AaveTokenCardProps {
   decimals?: number;
   loading?: boolean;
   showBridgeSupply?: boolean;
+  multiChainAPY?: ChainAPYData[]; // New prop for multi-chain APY data
 }
 
 export function AaveTokenCard({
@@ -52,43 +65,47 @@ export function AaveTokenCard({
   decimals = 18,
   loading,
   showBridgeSupply = false,
+  multiChainAPY = [],
 }: AaveTokenCardProps) {
   const [amount, setAmount] = useState("100");
   const [mode, setMode] = useState<"supply" | "withdraw">("supply");
-  
+
   const { address } = useAccount();
   const AAVE_CONFIG = getAaveConfig(networkMode);
   const tokenAddress = underlyingAsset;
-  
+
   // Approve and supply hooks
   const {
     writeContract: writeApprove,
     data: approveHash,
     isPending: isApprovePending,
   } = useWriteContract();
-  
-  const { isLoading: isApproveConfirming } =
-    useWaitForTransactionReceipt({ hash: approveHash });
-  
+
+  const { isLoading: isApproveConfirming } = useWaitForTransactionReceipt({
+    hash: approveHash,
+  });
+
   const {
     writeContract: writeSupply,
     data: supplyHash,
     isPending: isSupplyPending,
   } = useWriteContract();
-  
-  const { isLoading: isSupplyConfirming } =
-    useWaitForTransactionReceipt({ hash: supplyHash });
-  
+
+  const { isLoading: isSupplyConfirming } = useWaitForTransactionReceipt({
+    hash: supplyHash,
+  });
+
   // Withdraw hook
   const {
     writeContract: writeWithdraw,
     data: withdrawHash,
     isPending: isWithdrawPending,
   } = useWriteContract();
-  
-  const { isLoading: isWithdrawConfirming } =
-    useWaitForTransactionReceipt({ hash: withdrawHash });
-  
+
+  const { isLoading: isWithdrawConfirming } = useWaitForTransactionReceipt({
+    hash: withdrawHash,
+  });
+
   // Get allowance
   const { data: allowance } = useReadContract({
     address: tokenAddress as `0x${string}`,
@@ -99,17 +116,17 @@ export function AaveTokenCard({
       enabled: !!address && !!tokenAddress,
     },
   });
-  
+
   // Format balance helper - now receives strings from API
   const formatBalance = (balance?: string) => {
     if (!balance || balance === "0") return "0.00";
     return parseFloat(balance).toFixed(2);
   };
-  
+
   // Handle approve
   const handleApprove = () => {
     if (!tokenAddress || !amount) return;
-    
+
     const amountWei = parseUnits(amount, decimals);
     writeApprove({
       address: tokenAddress as `0x${string}`,
@@ -118,11 +135,11 @@ export function AaveTokenCard({
       args: [AAVE_CONFIG.POOL as `0x${string}`, amountWei],
     });
   };
-  
+
   // Handle supply
   const handleSupply = () => {
     if (!tokenAddress || !amount || !address) return;
-    
+
     const amountWei = parseUnits(amount, decimals);
     writeSupply({
       address: AAVE_CONFIG.POOL as `0x${string}`,
@@ -132,11 +149,11 @@ export function AaveTokenCard({
       gas: 350000n,
     });
   };
-  
+
   // Handle withdraw
   const handleWithdraw = () => {
     if (!tokenAddress || !amount || !address) return;
-    
+
     const amountWei = parseUnits(amount, decimals);
     writeWithdraw({
       address: AAVE_CONFIG.POOL as `0x${string}`,
@@ -146,13 +163,15 @@ export function AaveTokenCard({
       gas: 350000n,
     });
   };
-  
-  const needsApproval = mode === "supply" && allowance !== undefined && 
+
+  const needsApproval =
+    mode === "supply" &&
+    allowance !== undefined &&
     parseUnits(amount || "0", decimals) > (allowance as bigint);
-  
+
   const expectedYield = (parseFloat(amount || "0") * parseFloat(apy)) / 100;
   const monthlyYield = expectedYield / 12;
-  
+
   return (
     <div className="p-6 rounded-2xl glass-card border-2 border-aqua-blue/20 hover:border-aqua-blue/40 transition-all">
       {/* Header */}
@@ -161,41 +180,169 @@ export function AaveTokenCard({
           {/* Token Logo */}
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-neon-violet/30 to-aqua-blue/30 flex items-center justify-center overflow-hidden">
             {tokenLogo ? (
-              <img src={tokenLogo} alt={token} className="w-8 h-8 object-contain" />
+              <img
+                src={tokenLogo}
+                alt={token}
+                className="w-8 h-8 object-contain"
+              />
             ) : (
               <CircleDollarSign className="h-6 w-6 text-aqua-blue" />
             )}
           </div>
           <div>
             <h3 className="text-xl font-bold text-off-white">{token}</h3>
-            <p className="text-xs text-soft-gray">
-              {tokenName || token}
-            </p>
+            <p className="text-xs text-soft-gray">{tokenName || token}</p>
           </div>
         </div>
-        
+
         {/* Chain Badge */}
-        <div 
+        <div
           className="px-3 py-1.5 rounded-lg border-2 flex items-center gap-2"
-          style={{ borderColor: chainColor + "40", backgroundColor: chainColor + "10" }}
+          style={{
+            borderColor: chainColor + "40",
+            backgroundColor: chainColor + "10",
+          }}
         >
-          <img src={chainIcon} alt={chainName} className="w-4 h-4 object-contain" />
-          <span className="text-xs font-semibold text-off-white">{chainName}</span>
+          <img
+            src={chainIcon}
+            alt={chainName}
+            className="w-4 h-4 object-contain"
+          />
+          <span className="text-xs font-semibold text-off-white">
+            {chainName}
+          </span>
         </div>
       </div>
-      
-      {/* APY Display */}
+
+      {/* Multi-Chain APY Display */}
       <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-neon-violet/20 to-transparent border border-neon-violet/30">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-soft-gray">Supply APY</span>
+        <div className="flex items-center justify-between mb-3">
+          <span className="text-sm font-semibold text-off-white">
+            Supply APY by Chain
+          </span>
           <div className="text-right">
-            <div className="text-3xl font-bold text-neon-violet">
-              {loading ? <Loader2 className="h-6 w-6 animate-spin inline" /> : `${apy}%`}
+            <div className="text-2xl font-bold text-neon-violet">
+              {loading ? (
+                <Loader2 className="h-5 w-5 animate-spin inline" />
+              ) : (
+                `${apy}%`
+              )}
             </div>
+            <div className="text-xs text-soft-gray">Current Chain</div>
           </div>
         </div>
+
+        {/* Chain APY Rows */}
+        <div className="space-y-2">
+          {multiChainAPY.length > 0 ? (
+            multiChainAPY.map((chainData) => {
+              const isCurrentChain = chainData.chainId === targetChainId;
+              const isHighestAPY =
+                multiChainAPY.reduce((prev, current) =>
+                  parseFloat(current.supplyAPY) > parseFloat(prev.supplyAPY)
+                    ? current
+                    : prev
+                ).chainId === chainData.chainId;
+
+              return (
+                <div
+                  key={chainData.chainId}
+                  className={`flex items-center justify-between p-2 rounded-lg border transition-all ${
+                    isCurrentChain
+                      ? "border-2 border-opacity-60 text-off-white"
+                      : chainData.available
+                      ? "glass-card border border-soft-gray/20 hover:border-soft-gray/40"
+                      : "glass-card border border-soft-gray/10 opacity-50"
+                  }`}
+                  style={
+                    isCurrentChain
+                      ? {
+                          borderColor: chainColor + "60",
+                          backgroundColor: chainColor + "10",
+                        }
+                      : {}
+                  }
+                >
+                  <div className="flex items-center gap-2">
+                    <img
+                      src={chainData.chainIcon}
+                      alt={chainData.chainName}
+                      className="w-4 h-4 object-contain"
+                    />
+                    <span
+                      className={`text-sm ${
+                        isCurrentChain
+                          ? "font-medium text-off-white"
+                          : "text-soft-gray"
+                      }`}
+                    >
+                      {chainData.chainName}
+                    </span>
+                    {isCurrentChain && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-neon-violet/20 text-neon-violet">
+                        Connected
+                      </span>
+                    )}
+                    {isHighestAPY && chainData.available && (
+                      <span className="text-xs px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">
+                        Best
+                      </span>
+                    )}
+                  </div>
+                  <div
+                    className={`text-sm ${
+                      isCurrentChain
+                        ? "font-bold text-off-white"
+                        : "text-soft-gray"
+                    }`}
+                  >
+                    {chainData.loading ? (
+                      <Loader2 className="h-3 w-3 animate-spin" />
+                    ) : chainData.error ? (
+                      <span className="text-red-400">Error</span>
+                    ) : chainData.available ? (
+                      `${chainData.supplyAPY}%`
+                    ) : (
+                      <span className="text-xs">Not Available</span>
+                    )}
+                  </div>
+                </div>
+              );
+            })
+          ) : (
+            // Fallback: Show current chain only
+            <div
+              className="flex items-center justify-between p-2 rounded-lg border-2"
+              style={{
+                borderColor: chainColor + "60",
+                backgroundColor: chainColor + "10",
+              }}
+            >
+              <div className="flex items-center gap-2">
+                <img
+                  src={chainIcon}
+                  alt={chainName}
+                  className="w-4 h-4 object-contain"
+                />
+                <span className="text-sm font-medium text-off-white">
+                  {chainName}
+                </span>
+                <span className="text-xs px-2 py-0.5 rounded-full bg-neon-violet/20 text-neon-violet">
+                  Connected
+                </span>
+              </div>
+              <div className="text-sm font-bold text-off-white">
+                {loading ? (
+                  <Loader2 className="h-3 w-3 animate-spin" />
+                ) : (
+                  `${apy}%`
+                )}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
-      
+
       {/* User Balances */}
       {address && (
         <div className="mb-4 grid grid-cols-2 gap-3">
@@ -213,21 +360,25 @@ export function AaveTokenCard({
           </div>
         </div>
       )}
-      
+
       {/* Market Info */}
       <div className="mb-4 p-3 rounded-lg glass-card border border-soft-gray/20">
         <div className="grid grid-cols-2 gap-3 text-xs">
           <div>
             <span className="text-soft-gray">Available Liquidity</span>
-            <div className="font-semibold text-off-white mt-1">{availableLiquidity} {token}</div>
+            <div className="font-semibold text-off-white mt-1">
+              {availableLiquidity} {token}
+            </div>
           </div>
           <div>
             <span className="text-soft-gray">Expected APY</span>
-            <div className="font-semibold text-neon-violet mt-1">+{expectedYield.toFixed(2)} {token}/yr</div>
+            <div className="font-semibold text-neon-violet mt-1">
+              +{expectedYield.toFixed(2)} {token}/yr
+            </div>
           </div>
         </div>
       </div>
-      
+
       {/* Mode Toggle */}
       <div className="mb-4 grid grid-cols-2 gap-2">
         <button
@@ -253,10 +404,12 @@ export function AaveTokenCard({
           <span className="font-semibold text-sm">Withdraw</span>
         </button>
       </div>
-      
+
       {/* Amount Input */}
       <div className="mb-4">
-        <label className="block text-xs font-medium text-soft-gray mb-2">Amount</label>
+        <label className="block text-xs font-medium text-soft-gray mb-2">
+          Amount
+        </label>
         <div className="relative">
           <input
             type="number"
@@ -269,18 +422,19 @@ export function AaveTokenCard({
             {token}
           </div>
         </div>
-        
+
         {/* Quick amounts */}
         <div className="flex gap-2 mt-2">
-          {mode === "supply" && ["50", "100", "500"].map((preset) => (
-            <button
-              key={preset}
-              onClick={() => setAmount(preset)}
-              className="px-2 py-1 rounded-lg glass-card text-xs text-soft-gray hover:text-off-white transition-colors"
-            >
-              {preset}
-            </button>
-          ))}
+          {mode === "supply" &&
+            ["50", "100", "500"].map((preset) => (
+              <button
+                key={preset}
+                onClick={() => setAmount(preset)}
+                className="px-2 py-1 rounded-lg glass-card text-xs text-soft-gray hover:text-off-white transition-colors"
+              >
+                {preset}
+              </button>
+            ))}
           {mode === "withdraw" && userATokenBalance && (
             <button
               onClick={() => setAmount(formatBalance(userATokenBalance))}
@@ -291,17 +445,19 @@ export function AaveTokenCard({
           )}
         </div>
       </div>
-      
+
       {/* Expected Yield (only for supply) */}
       {mode === "supply" && (
         <div className="mb-4 p-3 rounded-lg bg-gradient-to-r from-neon-violet/10 to-transparent border border-neon-violet/30">
           <div className="flex justify-between text-xs">
             <span className="text-soft-gray">Monthly (Est.)</span>
-            <span className="font-semibold text-neon-violet">+{monthlyYield.toFixed(2)} {token}</span>
+            <span className="font-semibold text-neon-violet">
+              +{monthlyYield.toFixed(2)} {token}
+            </span>
           </div>
         </div>
       )}
-      
+
       {/* Action Buttons */}
       <div className="space-y-2">
         {mode === "supply" ? (
@@ -351,7 +507,7 @@ export function AaveTokenCard({
                 )}
               </BridgeAndExecuteButton>
             )}
-            
+
             {/* Direct supply (if on same chain) */}
             {needsApproval ? (
               <button

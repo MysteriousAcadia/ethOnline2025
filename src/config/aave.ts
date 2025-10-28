@@ -1,12 +1,13 @@
 // Aave V3 Configuration - Multi-Network Support
 // Using official @bgd-labs/aave-address-book for verified addresses
 
-import { 
-  POLYGON_V3_ADDRESSES, 
+import {
+  POLYGON_V3_ADDRESSES,
   POLYGON_V3_ASSETS,
   BASE_V3_ADDRESSES,
   BASE_V3_ASSETS,
 } from "./aaveAddressBook";
+import { AaveV3Ethereum, AaveV3Avalanche } from "@bgd-labs/aave-address-book";
 
 // Aave V3 Sepolia Testnet Configuration
 export const AAVE_V3_SEPOLIA = {
@@ -14,7 +15,7 @@ export const AAVE_V3_SEPOLIA = {
   POOL: "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951",
   POOL_DATA_PROVIDER: "0x3e9708d80f7B3e43118013075F7e95CE3AB31F31",
   ORACLE: "0x2Cc5cB8e4B2Eeb1A8C4C3E1d0eFe4Dc8e5b59F96",
-  
+
   // Supported Assets on Sepolia
   ASSETS: {
     USDC: {
@@ -42,7 +43,7 @@ export const AAVE_V3_SEPOLIA = {
       symbol: "WETH",
     },
   },
-  
+
   // Chain ID
   CHAIN_ID: 11155111,
   CHAIN_NAME: "Sepolia",
@@ -59,7 +60,7 @@ export const AAVE_V3_POLYGON = {
   POOL_ADDRESSES_PROVIDER: POLYGON_V3_ADDRESSES.POOL_ADDRESSES_PROVIDER,
   POOL_CONFIGURATOR: POLYGON_V3_ADDRESSES.POOL_CONFIGURATOR,
   ORACLE: POLYGON_V3_ADDRESSES.ORACLE,
-  
+
   // Additional Protocol Contracts
   UI_POOL_DATA_PROVIDER: POLYGON_V3_ADDRESSES.UI_POOL_DATA_PROVIDER,
   UI_INCENTIVE_DATA_PROVIDER: POLYGON_V3_ADDRESSES.UI_INCENTIVE_DATA_PROVIDER,
@@ -76,10 +77,10 @@ export const AAVE_V3_POLYGON = {
   DEBT_SWITCH: POLYGON_V3_ADDRESSES.DEBT_SWITCH,
   WITHDRAW_SWITCH: POLYGON_V3_ADDRESSES.WITHDRAW_SWITCH,
   RISK_STEWARD: POLYGON_V3_ADDRESSES.RISK_STEWARD,
-  
+
   // Supported Assets on Polygon (from Address Book)
   ASSETS: POLYGON_V3_ASSETS,
-  
+
   // Chain ID
   CHAIN_ID: POLYGON_V3_ADDRESSES.CHAIN_ID,
   CHAIN_NAME: POLYGON_V3_ADDRESSES.CHAIN_NAME,
@@ -95,7 +96,7 @@ export const AAVE_V3_BASE = {
   POOL_ADDRESSES_PROVIDER: BASE_V3_ADDRESSES.POOL_ADDRESSES_PROVIDER,
   POOL_CONFIGURATOR: BASE_V3_ADDRESSES.POOL_CONFIGURATOR,
   ORACLE: BASE_V3_ADDRESSES.ORACLE,
-  
+
   // Additional Protocol Contracts
   UI_POOL_DATA_PROVIDER: BASE_V3_ADDRESSES.UI_POOL_DATA_PROVIDER,
   UI_INCENTIVE_DATA_PROVIDER: BASE_V3_ADDRESSES.UI_INCENTIVE_DATA_PROVIDER,
@@ -107,15 +108,177 @@ export const AAVE_V3_BASE = {
   INCENTIVES_CONTROLLER: BASE_V3_ADDRESSES.INCENTIVES_CONTROLLER,
   EMISSION_MANAGER: BASE_V3_ADDRESSES.EMISSION_MANAGER,
   REGISTRY: BASE_V3_ADDRESSES.REGISTRY,
-  
+
   // Supported Assets on Base (from Address Book)
   ASSETS: BASE_V3_ASSETS,
-  
+
   // Chain ID
   CHAIN_ID: BASE_V3_ADDRESSES.CHAIN_ID,
   CHAIN_NAME: BASE_V3_ADDRESSES.CHAIN_NAME,
   EXPLORER: BASE_V3_ADDRESSES.EXPLORER,
   IS_TESTNET: BASE_V3_ADDRESSES.IS_TESTNET,
+} as const;
+
+// Aave V3 Ethereum Mainnet Configuration
+export const AAVE_V3_ETHEREUM = {
+  // Core Protocol Contracts (from @bgd-labs/aave-address-book)
+  POOL: AaveV3Ethereum.POOL,
+  POOL_DATA_PROVIDER: AaveV3Ethereum.AAVE_PROTOCOL_DATA_PROVIDER,
+  POOL_ADDRESSES_PROVIDER: AaveV3Ethereum.POOL_ADDRESSES_PROVIDER,
+  POOL_CONFIGURATOR: AaveV3Ethereum.POOL_CONFIGURATOR,
+  ORACLE: AaveV3Ethereum.ORACLE,
+
+  // Additional Protocol Contracts
+  UI_POOL_DATA_PROVIDER: AaveV3Ethereum.UI_POOL_DATA_PROVIDER,
+  UI_INCENTIVE_DATA_PROVIDER: AaveV3Ethereum.UI_INCENTIVE_DATA_PROVIDER,
+  ACL_MANAGER: AaveV3Ethereum.ACL_MANAGER,
+  ACL_ADMIN: AaveV3Ethereum.ACL_ADMIN,
+  WALLET_BALANCE_PROVIDER: AaveV3Ethereum.WALLET_BALANCE_PROVIDER,
+  WRAPPED_TOKEN_GATEWAY: AaveV3Ethereum.WETH_GATEWAY,
+  TREASURY_COLLECTOR: AaveV3Ethereum.COLLECTOR,
+  INCENTIVES_CONTROLLER: AaveV3Ethereum.DEFAULT_INCENTIVES_CONTROLLER,
+  EMISSION_MANAGER: AaveV3Ethereum.EMISSION_MANAGER,
+  REGISTRY: AaveV3Ethereum.POOL_ADDRESSES_PROVIDER_REGISTRY,
+
+  // Supported Assets on Ethereum (from Address Book)
+  ASSETS: {
+    USDC: {
+      address: AaveV3Ethereum.ASSETS.USDC.UNDERLYING,
+      aToken: AaveV3Ethereum.ASSETS.USDC.A_TOKEN,
+      variableDebtToken: AaveV3Ethereum.ASSETS.USDC.V_TOKEN,
+      decimals: 6,
+      symbol: "USDC" as const,
+    },
+    USDT: {
+      address: AaveV3Ethereum.ASSETS.USDT.UNDERLYING,
+      aToken: AaveV3Ethereum.ASSETS.USDT.A_TOKEN,
+      variableDebtToken: AaveV3Ethereum.ASSETS.USDT.V_TOKEN,
+      decimals: 6,
+      symbol: "USDT" as const,
+    },
+    DAI: {
+      address: AaveV3Ethereum.ASSETS.DAI.UNDERLYING,
+      aToken: AaveV3Ethereum.ASSETS.DAI.A_TOKEN,
+      variableDebtToken: AaveV3Ethereum.ASSETS.DAI.V_TOKEN,
+      decimals: 18,
+      symbol: "DAI" as const,
+    },
+    WETH: {
+      address: AaveV3Ethereum.ASSETS.WETH.UNDERLYING,
+      aToken: AaveV3Ethereum.ASSETS.WETH.A_TOKEN,
+      variableDebtToken: AaveV3Ethereum.ASSETS.WETH.V_TOKEN,
+      decimals: 18,
+      symbol: "WETH" as const,
+    },
+    WBTC: {
+      address: AaveV3Ethereum.ASSETS.WBTC.UNDERLYING,
+      aToken: AaveV3Ethereum.ASSETS.WBTC.A_TOKEN,
+      variableDebtToken: AaveV3Ethereum.ASSETS.WBTC.V_TOKEN,
+      decimals: 8,
+      symbol: "WBTC" as const,
+    },
+    AAVE: {
+      address: AaveV3Ethereum.ASSETS.AAVE.UNDERLYING,
+      aToken: AaveV3Ethereum.ASSETS.AAVE.A_TOKEN,
+      variableDebtToken: AaveV3Ethereum.ASSETS.AAVE.V_TOKEN,
+      decimals: 18,
+      symbol: "AAVE" as const,
+    },
+    LINK: {
+      address: AaveV3Ethereum.ASSETS.LINK.UNDERLYING,
+      aToken: AaveV3Ethereum.ASSETS.LINK.A_TOKEN,
+      variableDebtToken: AaveV3Ethereum.ASSETS.LINK.V_TOKEN,
+      decimals: 18,
+      symbol: "LINK" as const,
+    },
+  },
+
+  // Chain ID
+  CHAIN_ID: 1,
+  CHAIN_NAME: "Ethereum",
+  EXPLORER: "https://etherscan.io",
+  IS_TESTNET: false,
+} as const;
+
+// Aave V3 Avalanche Mainnet Configuration
+export const AAVE_V3_AVALANCHE = {
+  // Core Protocol Contracts (from @bgd-labs/aave-address-book)
+  POOL: AaveV3Avalanche.POOL,
+  POOL_DATA_PROVIDER: AaveV3Avalanche.AAVE_PROTOCOL_DATA_PROVIDER,
+  POOL_ADDRESSES_PROVIDER: AaveV3Avalanche.POOL_ADDRESSES_PROVIDER,
+  POOL_CONFIGURATOR: AaveV3Avalanche.POOL_CONFIGURATOR,
+  ORACLE: AaveV3Avalanche.ORACLE,
+
+  // Additional Protocol Contracts
+  UI_POOL_DATA_PROVIDER: AaveV3Avalanche.UI_POOL_DATA_PROVIDER,
+  UI_INCENTIVE_DATA_PROVIDER: AaveV3Avalanche.UI_INCENTIVE_DATA_PROVIDER,
+  ACL_MANAGER: AaveV3Avalanche.ACL_MANAGER,
+  ACL_ADMIN: AaveV3Avalanche.ACL_ADMIN,
+  WALLET_BALANCE_PROVIDER: AaveV3Avalanche.WALLET_BALANCE_PROVIDER,
+  WRAPPED_TOKEN_GATEWAY: AaveV3Avalanche.WETH_GATEWAY,
+  TREASURY_COLLECTOR: AaveV3Avalanche.COLLECTOR,
+  INCENTIVES_CONTROLLER: AaveV3Avalanche.DEFAULT_INCENTIVES_CONTROLLER,
+  EMISSION_MANAGER: AaveV3Avalanche.EMISSION_MANAGER,
+  REGISTRY: AaveV3Avalanche.POOL_ADDRESSES_PROVIDER_REGISTRY,
+
+  // Supported Assets on Avalanche (from Address Book)
+  ASSETS: {
+    USDC: {
+      address: AaveV3Avalanche.ASSETS.USDC.UNDERLYING,
+      aToken: AaveV3Avalanche.ASSETS.USDC.A_TOKEN,
+      variableDebtToken: AaveV3Avalanche.ASSETS.USDC.V_TOKEN,
+      decimals: 6,
+      symbol: "USDC" as const,
+    },
+    USDT: {
+      address: AaveV3Avalanche.ASSETS.USDt.UNDERLYING,
+      aToken: AaveV3Avalanche.ASSETS.USDt.A_TOKEN,
+      variableDebtToken: AaveV3Avalanche.ASSETS.USDt.V_TOKEN,
+      decimals: 6,
+      symbol: "USDT" as const,
+    },
+    DAI: {
+      address: AaveV3Avalanche.ASSETS.DAIe.UNDERLYING,
+      aToken: AaveV3Avalanche.ASSETS.DAIe.A_TOKEN,
+      variableDebtToken: AaveV3Avalanche.ASSETS.DAIe.V_TOKEN,
+      decimals: 18,
+      symbol: "DAI" as const,
+    },
+    WETH: {
+      address: AaveV3Avalanche.ASSETS.WETHe.UNDERLYING,
+      aToken: AaveV3Avalanche.ASSETS.WETHe.A_TOKEN,
+      variableDebtToken: AaveV3Avalanche.ASSETS.WETHe.V_TOKEN,
+      decimals: 18,
+      symbol: "WETH" as const,
+    },
+    WBTC: {
+      address: AaveV3Avalanche.ASSETS.WBTCe.UNDERLYING,
+      aToken: AaveV3Avalanche.ASSETS.WBTCe.A_TOKEN,
+      variableDebtToken: AaveV3Avalanche.ASSETS.WBTCe.V_TOKEN,
+      decimals: 8,
+      symbol: "WBTC" as const,
+    },
+    AAVE: {
+      address: AaveV3Avalanche.ASSETS.AAVEe.UNDERLYING,
+      aToken: AaveV3Avalanche.ASSETS.AAVEe.A_TOKEN,
+      variableDebtToken: AaveV3Avalanche.ASSETS.AAVEe.V_TOKEN,
+      decimals: 18,
+      symbol: "AAVE" as const,
+    },
+    WAVAX: {
+      address: AaveV3Avalanche.ASSETS.WAVAX.UNDERLYING,
+      aToken: AaveV3Avalanche.ASSETS.WAVAX.A_TOKEN,
+      variableDebtToken: AaveV3Avalanche.ASSETS.WAVAX.V_TOKEN,
+      decimals: 18,
+      symbol: "WAVAX" as const,
+    },
+  },
+
+  // Chain ID
+  CHAIN_ID: 43114,
+  CHAIN_NAME: "Avalanche",
+  EXPLORER: "https://snowtrace.io",
+  IS_TESTNET: false,
 } as const;
 
 // Network Mode Type
@@ -124,10 +287,14 @@ export type NetworkMode = "testnet" | "mainnet";
 // Get active Aave config based on chain ID
 export const getAaveConfigByChainId = (chainId: number | undefined) => {
   switch (chainId) {
+    case 1: // Ethereum Mainnet
+      return AAVE_V3_ETHEREUM;
     case 137: // Polygon Mainnet
       return AAVE_V3_POLYGON;
     case 8453: // Base Mainnet
       return AAVE_V3_BASE;
+    case 43114: // Avalanche Mainnet
+      return AAVE_V3_AVALANCHE;
     case 11155111: // Sepolia Testnet
       return AAVE_V3_SEPOLIA;
     default:
@@ -135,6 +302,12 @@ export const getAaveConfigByChainId = (chainId: number | undefined) => {
       return AAVE_V3_POLYGON;
   }
 };
+
+// Get all supported chain IDs for multi-chain operations
+export const getSupportedChainIds = () => [1, 137, 8453, 43114, 11155111];
+
+// Get all supported mainnet chain IDs
+export const getSupportedMainnetChainIds = () => [1, 137, 8453, 43114];
 
 // Get active Aave config based on mode (legacy, for backward compatibility)
 export const getAaveConfig = (mode: NetworkMode) => {
@@ -259,6 +432,7 @@ export function isSupportedAaveAsset(
 // Get all supported token symbols for network
 export function getSupportedAaveTokens(mode: NetworkMode = "testnet") {
   const config = getAaveConfig(mode);
-  return Object.keys(config.ASSETS) as Array<"USDC" | "USDT" | "DAI" | "WETH" | "WMATIC">;
+  return Object.keys(config.ASSETS) as Array<
+    "USDC" | "USDT" | "DAI" | "WETH" | "WMATIC"
+  >;
 }
-

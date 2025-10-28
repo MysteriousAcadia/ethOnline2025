@@ -8,9 +8,10 @@ import { useAaveMarket, chainId as aaveChainId, evmAddress } from "@aave/react";
 
 // Aave V3 Pool (Market) addresses - NOT Pool Addresses Provider
 const AAVE_POOL_ADDRESSES: Record<number, string> = {
+  1: "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2", // Ethereum V3 Pool
   137: "0x794a61358D6845594F94dc1DB02A252b5b4814aD", // Polygon V3 Pool
   8453: "0xA238Dd80C259a72e81d7e4664a9801593F98d1c5", // Base V3 Pool
-  1: "0x87870Bca3F3fD6335C3F4ce8392D69350B4fA4E2", // Ethereum V3 Pool
+  43114: "0x794a61358D6845594F94dc1DB02A252b5b4814aD", // Avalanche V3 Pool
   11155111: "0x6Ae43d3271ff6888e7Fc43Fd7321a503ff738951", // Sepolia V3 Pool
 };
 
@@ -103,27 +104,30 @@ export function useAaveMarketData(
         }
 
         // Extract APY from the nested structure: supplyInfo.apy.formatted
-        const supplyAPY = reserve.supplyInfo?.apy?.formatted || 
-                         reserve.supplyAPY || 
-                         "0.00";
-        
-        const variableBorrowAPY = reserve.borrowInfo?.apy?.formatted || 
-                                 reserve.variableBorrowAPY || 
-                                 "0.00";
-        
+        const supplyAPY =
+          reserve.supplyInfo?.apy?.formatted || reserve.supplyAPY || "0.00";
+
+        const variableBorrowAPY =
+          reserve.borrowInfo?.apy?.formatted ||
+          reserve.variableBorrowAPY ||
+          "0.00";
+
         // Extract liquidity from borrowInfo.availableLiquidity.amount.value
-        const availableLiquidity = reserve.borrowInfo?.availableLiquidity?.amount?.value ||
-                                  reserve.availableLiquidity?.toString() ||
-                                  "0";
-        
-        const totalLiquidity = reserve.size?.amount?.value ||
-                              reserve.totalLiquidity?.toString() ||
-                              "0";
-        
-        const utilizationRate = reserve.borrowInfo?.utilizationRate?.formatted ||
-                               reserve.utilizationRate ||
-                               "0.00";
-        
+        const availableLiquidity =
+          reserve.borrowInfo?.availableLiquidity?.amount?.value ||
+          reserve.availableLiquidity?.toString() ||
+          "0";
+
+        const totalLiquidity =
+          reserve.size?.amount?.value ||
+          reserve.totalLiquidity?.toString() ||
+          "0";
+
+        const utilizationRate =
+          reserve.borrowInfo?.utilizationRate?.formatted ||
+          reserve.utilizationRate ||
+          "0.00";
+
         // Log user state for debugging
         console.log(`${symbol} userState:`, {
           suppliable: reserve.userState?.suppliable?.amount?.value,
@@ -140,7 +144,8 @@ export function useAaveMarketData(
           utilizationRate,
           isActive: !reserve.isFrozen && !reserve.isPaused,
           aTokenAddress: reserve.aToken?.address || reserve.aTokenAddress,
-          underlyingAsset: reserve.underlyingToken?.address || reserve.underlyingToken,
+          underlyingAsset:
+            reserve.underlyingToken?.address || reserve.underlyingToken,
           tokenLogo: reserve.underlyingToken?.imageUrl,
           // suppliable = amount user can supply (wallet balance)
           suppliable: reserve.userState?.suppliable?.amount?.value || "0",

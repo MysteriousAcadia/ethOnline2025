@@ -1,9 +1,9 @@
 /**
  * Aave V3 Address Book Integration
- * 
+ *
  * This file integrates the official Aave Address Book for all supported mainnet chains
  * and provides a unified interface for accessing all Aave protocol contracts.
- * 
+ *
  * Using official package: @bgd-labs/aave-address-book
  * Documentation: https://github.com/bgd-labs/aave-address-book
  */
@@ -31,37 +31,37 @@ export const POLYGON_V3_CONTRACTS = {
   Pool: AaveV3Polygon.POOL,
   PoolAddressesProvider: AaveV3Polygon.POOL_ADDRESSES_PROVIDER,
   PoolConfigurator: AaveV3Polygon.POOL_CONFIGURATOR,
-  
+
   // Data Providers
   AaveProtocolDataProvider: AaveV3Polygon.AAVE_PROTOCOL_DATA_PROVIDER,
   UiPoolDataProvider: AaveV3Polygon.UI_POOL_DATA_PROVIDER,
   UiIncentiveDataProvider: AaveV3Polygon.UI_INCENTIVE_DATA_PROVIDER,
-  
+
   // Oracle
   AaveOracle: AaveV3Polygon.ORACLE,
-  
+
   // Access Control
   ACLManager: AaveV3Polygon.ACL_MANAGER,
   ACLAdmin: AaveV3Polygon.ACL_ADMIN,
-  
+
   // Utilities
   WalletBalanceProvider: AaveV3Polygon.WALLET_BALANCE_PROVIDER,
   WrappedTokenGateway: AaveV3Polygon.WETH_GATEWAY,
-  
+
   // Treasury & Incentives
   TreasuryCollector: AaveV3Polygon.COLLECTOR,
   DefaultIncentivesController: AaveV3Polygon.DEFAULT_INCENTIVES_CONTROLLER,
   IncentivesEmissionManager: AaveV3Polygon.EMISSION_MANAGER,
-  
+
   // Registry
   PoolAddressesProviderRegistry: AaveV3Polygon.POOL_ADDRESSES_PROVIDER_REGISTRY,
-  
+
   // Advanced Features
   RepayWithCollateral: "0x5d4D4007A4c6336550DdAa2a7c0d5e7972eebd16" as const,
   CollateralSwitch: "0xC4af4B6f0Aa81C2D1a49B6Fd8E5A18A0eC9dec5E" as const,
   DebtSwitch: "0xE28E2c8d240dd5eBd0adcab86fbD79df7a052034" as const,
   WithdrawSwitchAdapter: "0x78F8337c1d0d5ce708c1A8f1D99F84DAd1E020e0" as const,
-  
+
   // Risk Management
   RiskSteward: "0x1e0A9b08ED06016E4bf9Aa05Fc0cd6933A7E629b" as const,
 } as const;
@@ -76,36 +76,36 @@ export const POLYGON_V3_ADDRESSES = {
   CHAIN_NAME: "Polygon",
   EXPLORER: "https://polygonscan.com",
   IS_TESTNET: false,
-  
+
   // Core Protocol (from Address Book)
   POOL: POLYGON_V3_CONTRACTS.Pool,
   POOL_ADDRESSES_PROVIDER: POLYGON_V3_CONTRACTS.PoolAddressesProvider,
   POOL_CONFIGURATOR: POLYGON_V3_CONTRACTS.PoolConfigurator,
   POOL_DATA_PROVIDER: POLYGON_V3_CONTRACTS.AaveProtocolDataProvider,
-  
+
   // Data & UI
   UI_POOL_DATA_PROVIDER: POLYGON_V3_CONTRACTS.UiPoolDataProvider,
   UI_INCENTIVE_DATA_PROVIDER: POLYGON_V3_CONTRACTS.UiIncentiveDataProvider,
-  
+
   // Oracle
   ORACLE: POLYGON_V3_CONTRACTS.AaveOracle,
-  
+
   // Access Control
   ACL_MANAGER: POLYGON_V3_CONTRACTS.ACLManager,
   ACL_ADMIN: POLYGON_V3_CONTRACTS.ACLAdmin,
-  
+
   // Utilities
   WALLET_BALANCE_PROVIDER: POLYGON_V3_CONTRACTS.WalletBalanceProvider,
   WRAPPED_TOKEN_GATEWAY: POLYGON_V3_CONTRACTS.WrappedTokenGateway,
-  
+
   // Treasury & Incentives
   TREASURY_COLLECTOR: POLYGON_V3_CONTRACTS.TreasuryCollector,
   INCENTIVES_CONTROLLER: POLYGON_V3_CONTRACTS.DefaultIncentivesController,
   EMISSION_MANAGER: POLYGON_V3_CONTRACTS.IncentivesEmissionManager,
-  
+
   // Registry
   REGISTRY: POLYGON_V3_CONTRACTS.PoolAddressesProviderRegistry,
-  
+
   // Advanced Features
   REPAY_WITH_COLLATERAL: POLYGON_V3_CONTRACTS.RepayWithCollateral,
   COLLATERAL_SWITCH: POLYGON_V3_CONTRACTS.CollateralSwitch,
@@ -225,7 +225,9 @@ export const ADDRESS_VERIFICATION = {
   Pool: {
     expected: "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
     actual: POLYGON_V3_CONTRACTS.Pool,
-    matches: POLYGON_V3_CONTRACTS.Pool === "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
+    matches:
+      POLYGON_V3_CONTRACTS.Pool ===
+      "0x794a61358D6845594F94dc1DB02A252b5b4814aD",
   },
   WrappedTokenGateway: {
     expected: "0xBC309e85D28f49fc8DD7A1E456D6e76B77C83Ad63", // Provided by user (needs verification)
@@ -235,7 +237,9 @@ export const ADDRESS_VERIFICATION = {
   PoolAddressesProvider: {
     expected: "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
     actual: POLYGON_V3_CONTRACTS.PoolAddressesProvider,
-    matches: POLYGON_V3_CONTRACTS.PoolAddressesProvider === "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
+    matches:
+      POLYGON_V3_CONTRACTS.PoolAddressesProvider ===
+      "0xa97684ead0e402dC232d5A977953DF7ECBaB3CDb",
   },
 } as const;
 
@@ -285,28 +289,28 @@ export const BASE_V3_CONTRACTS = {
   Pool: AaveV3Base.POOL,
   PoolAddressesProvider: AaveV3Base.POOL_ADDRESSES_PROVIDER,
   PoolConfigurator: AaveV3Base.POOL_CONFIGURATOR,
-  
+
   // Data Providers
   AaveProtocolDataProvider: AaveV3Base.AAVE_PROTOCOL_DATA_PROVIDER,
   UiPoolDataProvider: AaveV3Base.UI_POOL_DATA_PROVIDER,
   UiIncentiveDataProvider: AaveV3Base.UI_INCENTIVE_DATA_PROVIDER,
-  
+
   // Oracle
   AaveOracle: AaveV3Base.ORACLE,
-  
+
   // Access Control
   ACLManager: AaveV3Base.ACL_MANAGER,
   ACLAdmin: AaveV3Base.ACL_ADMIN,
-  
+
   // Utilities
   WalletBalanceProvider: AaveV3Base.WALLET_BALANCE_PROVIDER,
   WrappedTokenGateway: AaveV3Base.WETH_GATEWAY,
-  
+
   // Treasury & Incentives
   TreasuryCollector: AaveV3Base.COLLECTOR,
   DefaultIncentivesController: AaveV3Base.DEFAULT_INCENTIVES_CONTROLLER,
   IncentivesEmissionManager: AaveV3Base.EMISSION_MANAGER,
-  
+
   // Registry
   PoolAddressesProviderRegistry: AaveV3Base.POOL_ADDRESSES_PROVIDER_REGISTRY,
 } as const;
@@ -320,33 +324,33 @@ export const BASE_V3_ADDRESSES = {
   CHAIN_NAME: "Base",
   EXPLORER: "https://basescan.org",
   IS_TESTNET: false,
-  
+
   // Core Protocol (from Address Book)
   POOL: BASE_V3_CONTRACTS.Pool,
   POOL_ADDRESSES_PROVIDER: BASE_V3_CONTRACTS.PoolAddressesProvider,
   POOL_CONFIGURATOR: BASE_V3_CONTRACTS.PoolConfigurator,
   POOL_DATA_PROVIDER: BASE_V3_CONTRACTS.AaveProtocolDataProvider,
-  
+
   // Data & UI
   UI_POOL_DATA_PROVIDER: BASE_V3_CONTRACTS.UiPoolDataProvider,
   UI_INCENTIVE_DATA_PROVIDER: BASE_V3_CONTRACTS.UiIncentiveDataProvider,
-  
+
   // Oracle
   ORACLE: BASE_V3_CONTRACTS.AaveOracle,
-  
+
   // Access Control
   ACL_MANAGER: BASE_V3_CONTRACTS.ACLManager,
   ACL_ADMIN: BASE_V3_CONTRACTS.ACLAdmin,
-  
+
   // Utilities
   WALLET_BALANCE_PROVIDER: BASE_V3_CONTRACTS.WalletBalanceProvider,
   WRAPPED_TOKEN_GATEWAY: BASE_V3_CONTRACTS.WrappedTokenGateway,
-  
+
   // Treasury & Incentives
   TREASURY_COLLECTOR: BASE_V3_CONTRACTS.TreasuryCollector,
   INCENTIVES_CONTROLLER: BASE_V3_CONTRACTS.DefaultIncentivesController,
   EMISSION_MANAGER: BASE_V3_CONTRACTS.IncentivesEmissionManager,
-  
+
   // Registry
   REGISTRY: BASE_V3_CONTRACTS.PoolAddressesProviderRegistry,
 } as const;
@@ -389,7 +393,9 @@ export const getAssetBySymbol = (symbol: keyof typeof POLYGON_V3_ASSETS) => {
  * Helper: Get all supported asset symbols
  */
 export const getSupportedAssets = () => {
-  return Object.keys(POLYGON_V3_ASSETS) as Array<keyof typeof POLYGON_V3_ASSETS>;
+  return Object.keys(POLYGON_V3_ASSETS) as Array<
+    keyof typeof POLYGON_V3_ASSETS
+  >;
 };
 
 /**
